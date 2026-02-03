@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Checklist Review Tool</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f7f6;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+.card {
+    background: #fff;
+    width: 100%;
+    max-width: 650px;
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.section {
+    margin-bottom: 20px;
+}
+label {
+    font-weight: 600;
+    font-size: 0.9em;
+    display: block;
+    margin-bottom: 6px;
+}
+input[type="text"], textarea {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+.param {
+    margin-bottom: 12px;
+}
+.switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #27ae60;
+    color: white;
+    font-size: 1.05em;
+    font-weight: bold;
+    cursor: pointer;
+}
+button:hover {
+    background: #219150;
+}
+.hidden {
+    display: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h2>Checklist Review</h2>
+
+<div class="section">
+<label>CHECKLIST</label>
+<input type="text" id="checklist" placeholder="CAJ0590 - CAJ0042 CHECKLIST">
+</div>
+
+<div class="section">
+<label>TEC</label>
+<input type="text" id="tec" placeholder="3G/4G 1700/1900">
+</div>
+
+<div class="section">
+<label>PLAN</label>
+<input type="text" id="plan" placeholder="NEW SITE">
+</div>
+
+<div class="section switch">
+<input type="checkbox" id="extended">
+<label for="extended">Extended Site</label>
+</div>
+
+<hr>
+
+<div id="observations"></div>
+
+<div class="section">
+<label>cc:</label>
+<input type="text" id="cc" placeholder="Mr">
+</div>
+
+<button onclick="generateReport()">Copy Checklist Report</button>
+</div>
+
+<script>
+const params = [
+    "OUTDOOR",
+    "INDOOR",
+    "KMZ",
+    "PHOTOS",
+    "ZIP/RAR",
+    "PL"
+];
+
+const obsContainer = document.getElementById("observations");
+
+function renderObservations() {
+    obsContainer.innerHTML = "";
+    const isExtended = document.getElementById("extended").checked;
+
+    params.forEach(p => {
+        if (p === "PL" && isExtended) return;
+
+        const div = document.createElement("div");
+        div.className = "param";
+        div.innerHTML = `
+            <label>${p}</label>
+            <textarea id="obs_${p}"></textarea>
+        `;
+        obsContainer.appendChild(div);
+    });
+}
+
+document.getElementById("extended").addEventListener("change", renderObservations);
+renderObservations();
+
+function generateReport() {
+    const checklist = document.getElementById("checklist").value;
+    const tec = document.getElementById("tec").value;
+    const plan = document.getElementById("plan").value;
+    const cc = document.getElementById("cc").value;
+    const isExtended = document.getElementById("extended").checked;
+
+    let summary = [];
+    let obsLines = [];
+    let allFilled = true;
+    let hasNok = false;
+
+    params.forEach(p => {
+        if (p === "PL" && isExtended) return;
+
+        const text = document.getElementById(`obs_${p}`).value.trim();
+        if (text) {
+            summary.push(`${p}: NOK`);
+            obsLines.push(`* ${p}: ${text}`);
+            hasNok = true;
+        } else {
+            summary.push(`${p}: OK`);
+            allFilled = false;
+        }
+    });
+
+    const status = hasNok ? "RECHAZADO" : "APROBADO";
+    const date = new Date().toLocaleDateString("en-GB");
+
+    let report = "";
+    report += "DEPT: TRA / Cable Operación Team\n";
+    report += `${checklist}\n`;
+    report += `TEC: ${tec}\n`;
+    report += `PLAN: ${plan}\n\n`;
+
+    report += summary.join("\n");
+    report += "\n\n";
+
+    report += `STATUS: ${status}\n`;
+    report += `DATE: ${date}\n\n`;
+
+    if (obsLines.length) {
+        report += "OBS:\n";
+        report += obsLines.join("\n");
+        if (allFilled) {
+            report += "\n\nPlease review the checklist guide in the group description";
+        }
+        report += "\n\n";
+    }
+
+    report += `cc: ${cc}`;
+
+    navigator.clipboard.writeText(report);
+    alert("Checklist report copied to clipboard");
+}
+</script>
+
+</body>
+</html>
